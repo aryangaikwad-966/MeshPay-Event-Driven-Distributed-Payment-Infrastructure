@@ -1,44 +1,42 @@
 version: '3.8'
 
 services:
-  # MySQL Database for Payment Service
-  mysql-payment:
-    image: mysql:8.0
-    container_name: meshpay-mysql-payment
+  # PostgreSQL Database for Payment Service
+  postgres-payment:
+    image: postgres:16-alpine
+    container_name: meshpay-postgres-payment
     environment:
-      MYSQL_ROOT_PASSWORD: ${DB_ROOT_PASSWORD:-rootpassword}
-      MYSQL_DATABASE: meshpay_payment
-      MYSQL_USER: ${DB_USER:-meshpay}
-      MYSQL_PASSWORD: ${DB_PASSWORD:-changeme}
+      POSTGRES_DB: meshpay_payment
+      POSTGRES_USER: ${DB_USER:-meshpay}
+      POSTGRES_PASSWORD: ${DB_PASSWORD:-changeme}
     ports:
-      - "3307:3306"
+      - "5433:5432"
     volumes:
-      - mysql_payment_data:/var/lib/mysql
+      - postgres_payment_data:/var/lib/postgresql/data
     networks:
       - meshpay-network
     healthcheck:
-      test: ["CMD", "mysqladmin", "ping", "-h", "localhost", "-u", "${DB_USER:-meshpay}", "-p${DB_PASSWORD:-changeme}"]
+      test: ["CMD-SHELL", "pg_isready -U ${DB_USER:-meshpay} -d meshpay_payment"]
       interval: 10s
       timeout: 5s
       retries: 5
 
-  # MySQL Database for Saga Service
-  mysql-saga:
-    image: mysql:8.0
-    container_name: meshpay-mysql-saga
+  # PostgreSQL Database for Saga Service
+  postgres-saga:
+    image: postgres:16-alpine
+    container_name: meshpay-postgres-saga
     environment:
-      MYSQL_ROOT_PASSWORD: ${DB_ROOT_PASSWORD:-rootpassword}
-      MYSQL_DATABASE: meshpay_saga
-      MYSQL_USER: ${DB_USER:-meshpay}
-      MYSQL_PASSWORD: ${DB_PASSWORD:-changeme}
+      POSTGRES_DB: meshpay_saga
+      POSTGRES_USER: ${DB_USER:-meshpay}
+      POSTGRES_PASSWORD: ${DB_PASSWORD:-changeme}
     ports:
-      - "3308:3306"
+      - "5434:5432"
     volumes:
-      - mysql_saga_data:/var/lib/mysql
+      - postgres_saga_data:/var/lib/postgresql/data
     networks:
       - meshpay-network
     healthcheck:
-      test: ["CMD", "mysqladmin", "ping", "-h", "localhost", "-u", "${DB_USER:-meshpay}", "-p${DB_PASSWORD:-changeme}"]
+      test: ["CMD-SHELL", "pg_isready -U ${DB_USER:-meshpay} -d meshpay_saga"]
       interval: 10s
       timeout: 5s
       retries: 5
@@ -149,15 +147,17 @@ services:
     ports:
       - "8081:8081"
     environment:
-      SPRING_DATASOURCE_URL: jdbc:mysql://mysql-payment:3306/meshpay_payment?createDatabaseIfNotExist=true&useSSL=false&serverTimezone=UTC
+      SPRING_DATASOURCE_URL: jdbc:postgresql://postgres-payment:5432/meshpay_payment
       SPRING_DATASOURCE_USERNAME: ${DB_USER:-meshpay}
       SPRING_DATASOURCE_PASSWORD: ${DB_PASSWORD:-changeme}
+      SPRING_DATASOURCE_DRIVER_CLASS_NAME: org.postgresql.Driver
+      SPRING_JPA_PROPERTIES_HIBERNATE_DIALECT: org.hibernate.dialect.PostgreSQLDialect
       SPRING_REDIS_HOST: redis
       SPRING_REDIS_PORT: 6379
       SPRING_KAFKA_BOOTSTRAP_SERVERS: kafka:29092
       EUREKA_CLIENT_SERVICE_URL_DEFAULTZONE: http://eureka-server:8761/eureka/
     depends_on:
-      mysql-payment:
+      postgres-payment:
         condition: service_healthy
       redis:
         condition: service_healthy
@@ -182,15 +182,17 @@ services:
     ports:
       - "8082:8082"
     environment:
-      SPRING_DATASOURCE_URL: jdbc:mysql://mysql-saga:3306/meshpay_saga?createDatabaseIfNotExist=true&useSSL=false&serverTimezone=UTC
+      SPRING_DATASOURCE_URL: jdbc:postgresql://postgres-saga:5432/meshpay_saga
       SPRING_DATASOURCE_USERNAME: ${DB_USER:-meshpay}
       SPRING_DATASOURCE_PASSWORD: ${DB_PASSWORD:-changeme}
+      SPRING_DATASOURCE_DRIVER_CLASS_NAME: org.postgresql.Driver
+      SPRING_JPA_PROPERTIES_HIBERNATE_DIALECT: org.hibernate.dialect.PostgreSQLDialect
       SPRING_REDIS_HOST: redis
       SPRING_REDIS_PORT: 6379
       SPRING_KAFKA_BOOTSTRAP_SERVERS: kafka:29092
       EUREKA_CLIENT_SERVICE_URL_DEFAULTZONE: http://eureka-server:8761/eureka/
     depends_on:
-      mysql-saga:
+      postgres-saga:
         condition: service_healthy
       redis:
         condition: service_healthy
@@ -211,9 +213,9 @@ networks:
     driver: bridge
 
 volumes:
-  mysql_payment_data:
+  postgres_payment_data:
     driver: local
-  mysql_saga_data:
+  postgres_saga_data:
     driver: local
   redis_data:
     driver: local
@@ -223,3 +225,4 @@ volumes:
     driver: local
   kafka_data:
     driver: local
+

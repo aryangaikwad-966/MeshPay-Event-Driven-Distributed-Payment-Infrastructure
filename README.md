@@ -24,7 +24,7 @@ MeshPay consists of the following microservices:
 
 ### Infrastructure
 
-- **MySQL 8.0** - Primary database for each service
+- **PostgreSQL 16** - Primary database for each service
 - **Redis 7** - Caching and distributed locking
 - **Apache Kafka 3.x** - Event-driven messaging
 - **Zookeeper** - Kafka coordination
@@ -34,7 +34,7 @@ MeshPay consists of the following microservices:
 ```
 Client → API Gateway (8080) → Payment Service (8081) + Saga Service (8082)
                                       ↓                    ↓
-                                  MySQL (3307)          MySQL (3308)
+                                  PostgreSQL (5433)     PostgreSQL (5434)
                                       ↓                    ↓
                                   Kafka (9092) ←─────────┘
                                       ↓
@@ -179,7 +179,7 @@ Distributed transactions are orchestrated using the Saga pattern with persistent
 4. **Settlement Completion** - Finalize transaction via Kafka command
 5. **Compensation** - Rollback actions on failure
 
-Saga state is persisted to MySQL to survive orchestrator crashes. Each step has defined compensation actions for failure recovery.
+Saga state is persisted to PostgreSQL to survive orchestrator crashes. Each step has defined compensation actions for failure recovery.
 
 ### Event-Driven Architecture
 
@@ -377,7 +377,7 @@ Key environment variables can be set in `docker-compose.yml`:
 ```yaml
 environment:
   - SPRING_PROFILES_ACTIVE=prod
-  - SPRING_DATASOURCE_URL=jdbc:mysql://mysql:3306/meshpay_payment
+  - SPRING_DATASOURCE_URL=jdbc:postgresql://postgres:5432/meshpay_payment
   - SPRING_REDIS_HOST=redis
   - SPRING_KAFKA_BOOTSTRAP_SERVERS=kafka:9092
 ```
@@ -386,8 +386,8 @@ environment:
 
 Each service has its own database:
 
-- **Payment Service**: `meshpay_payment` (port 3307)
-- **Saga Service**: `meshpay_saga` (port 3308)
+- **Payment Service**: `meshpay_payment` (port 5433)
+- **Saga Service**: `meshpay_saga` (port 5434)
 
 ---
 
@@ -398,7 +398,7 @@ Each service has its own database:
 - **Spring Cloud**: 2023.0.3
 - **Spring Cloud Gateway**: 4.1.x
 - **Spring Cloud Netflix Eureka**: 4.1.x
-- **MySQL**: 8.0
+- **PostgreSQL**: 16
 - **Redis**: 7
 - **Kafka**: 3.x
 - **Resilience4j**: 2.1.0

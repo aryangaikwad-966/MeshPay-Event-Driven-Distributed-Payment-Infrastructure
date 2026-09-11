@@ -42,20 +42,19 @@ jobs:
     name: Build & Test
     needs: security
     services:
-      mysql:
-        image: mysql:8.0
+      postgres:
+        image: postgres:16-alpine
         env:
-          MYSQL_ROOT_PASSWORD: test
-          MYSQL_DATABASE: meshpay_test
-          MYSQL_USER: test
-          MYSQL_PASSWORD: test
+          POSTGRES_DB: meshpay_test
+          POSTGRES_USER: test
+          POSTGRES_PASSWORD: test
         options: >-
-          --health-cmd="mysqladmin ping -h localhost -u test -ptest"
+          --health-cmd="pg_isready -U test -d meshpay_test"
           --health-interval 10s
           --health-timeout 5s
           --health-retries 5
         ports:
-          - 3306:3306
+          - 5432:5432
       kafka:
         image: confluentinc/cp-kafka:7.5.0
         env:
@@ -98,17 +97,21 @@ jobs:
         run: |
           ./mvnw clean package \
             -DskipTests=false \
-            -Dspring.datasource.url=jdbc:mysql://localhost:3306/meshpay_test?createDatabaseIfNotExist=true&useSSL=false&serverTimezone=UTC \
+            -Dspring.datasource.url=jdbc:postgresql://localhost:5432/meshpay_test \
             -Dspring.datasource.username=test \
             -Dspring.datasource.password=test \
+            -Dspring.datasource.driver-class-name=org.postgresql.Driver \
+            -Dspring.jpa.properties.hibernate.dialect=org.hibernate.dialect.PostgreSQLDialect \
             -Dspring.kafka.bootstrap-servers=localhost:9092
 
       - name: Run tests
         run: |
           ./mvnw test \
-            -Dspring.datasource.url=jdbc:mysql://localhost:3306/meshpay_test?createDatabaseIfNotExist=true&useSSL=false&serverTimezone=UTC \
+            -Dspring.datasource.url=jdbc:postgresql://localhost:5432/meshpay_test \
             -Dspring.datasource.username=test \
             -Dspring.datasource.password=test \
+            -Dspring.datasource.driver-class-name=org.postgresql.Driver \
+            -Dspring.jpa.properties.hibernate.dialect=org.hibernate.dialect.PostgreSQLDialect \
             -Dspring.kafka.bootstrap-servers=localhost:9092
 
       # Code coverage

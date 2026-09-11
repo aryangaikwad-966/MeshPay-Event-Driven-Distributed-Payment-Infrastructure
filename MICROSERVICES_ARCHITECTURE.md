@@ -74,7 +74,7 @@ Defense-in-depth approach:
 ### Docker Compose
 
 The `docker-compose.yml` orchestrates all services:
-- MySQL databases (separate for Payment and Saga)
+- PostgreSQL databases (separate for Payment and Saga)
 - Redis for distributed caching
 - Kafka for event streaming
 - Eureka Server for service discovery
